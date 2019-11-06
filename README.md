@@ -5,8 +5,8 @@ Aplicativo para consultar CEP através da API do VIA CEP
 Tutorial de criação deste app: http://bit.ly/2kcGFQh
 
 <p align="center">
-    <img src="https://i.ibb.co/Vw1461x/Screenshot-2019-11-06-07-54-09-235-com-example-search-cep.png" height="400"/>
-    <img src="https://i.ibb.co/wL4CDVQ/Screenshot-2019-11-06-07-54-13-924-com-example-search-cep.png" height="400"/>
+    <img src="https://github.com/lucascalu/search-cep-aulas-flutter-master/blob/master/screenshots/screen1.png" height="400"/>
+    <img src="https://github.com/lucascalu/search-cep-aulas-flutter-master/blob/master/screenshots/screen2.png" height="400"/>
 </p>
 
 ## RA
