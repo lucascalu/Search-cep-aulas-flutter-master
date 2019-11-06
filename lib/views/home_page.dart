@@ -1,0 +1,237 @@
+import 'package:dynamic_theme/dynamic_theme.dart';
+import 'package:flushbar/flushbar.dart';
+import 'package:flutter/material.dart';
+import 'package:search_cep/services/via_cep_service.dart';
+import 'package:search_cep/themes/blue.dart';
+import 'package:search_cep/themes/blackblue.dart';
+import 'package:share/share.dart';
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  var _searchCepController = TextEditingController();
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // Required:
+  GlobalKey<FormState> _formResult = GlobalKey<FormState>();
+
+  // All the TextEditingControllers we need for fancy input thingies
+  // (I was just relying on Text() and the Map() from cep object earlier, they look ugly)
+  var _resultRua = TextEditingController();
+  var _resultComplemento = TextEditingController();
+  var _resultBairro = TextEditingController();
+  var _resultLocalidade = TextEditingController();
+  var _resultUF = TextEditingController();
+  var _resultUnidade = TextEditingController();
+  var _resultIBGE = TextEditingController();
+  var _resultGIA = TextEditingController();
+
+  bool _loading = false;
+  bool _enableField = true;
+  String _result;
+
+  @override
+  void dispose() {
+    super.dispose();
+    _searchCepController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: new Color(0x673AB7),
+        title: Text('Pesquisa de CEP'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.local_library),
+            onPressed: () {
+              if (Theme.of(context).brightness == Brightness.light) {
+                DynamicTheme.of(context).setThemeData(blackblueTheme);
+              } else {
+                
+               DynamicTheme.of(context).setThemeData(lscTheme);
+              }
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.share),
+            onPressed: () {
+              Share.share("CEP: ${_searchCepController.text}");
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+             clearResultFields();
+            },
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Form(
+              key: _formKey,
+              child: _buildSearchCepTextField(),
+            ),
+            _buildSearchCepButton(),
+            // This is not pretty but designers will take care of it
+            SizedBox(height: 10),
+            _buildResultForm(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultForm() {
+    return Form(
+      key: _formResult,
+      child: Column(
+        children: <Widget>[
+          TextFormField(
+            controller: _resultRua,
+            decoration: InputDecoration(labelText: 'Rua'),
+          ),
+          TextFormField(
+            controller: _resultBairro,
+            decoration: InputDecoration(labelText: 'Bairro'),
+          ),
+          TextFormField(
+            controller: _resultComplemento,
+            decoration: InputDecoration(labelText: 'Complemento'),
+          ),
+          TextFormField(
+            controller: _resultLocalidade,
+            decoration: InputDecoration(labelText: 'Localidade'),
+          ),
+          TextFormField(
+            controller: _resultUF,
+            decoration: InputDecoration(labelText: 'UF'),
+          ),
+          TextFormField(
+            controller: _resultUnidade,
+            decoration: InputDecoration(labelText: 'Unidade'),
+          ),
+          TextFormField(
+            controller: _resultIBGE,
+            decoration: InputDecoration(labelText: 'IBGE'),
+          ),
+          TextFormField(
+            controller: _resultGIA,
+            decoration: InputDecoration(labelText: 'GIA'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchCepTextField() {
+    return TextFormField(
+      decoration: InputDecoration(labelText: 'Cep'),
+      keyboardType: TextInputType.number,
+      autofocus: true,
+      controller: _searchCepController,
+      enabled: _enableField,
+      autovalidate: false,
+      validator: (String str) {
+        str = str.replaceAll(r'-', r'');
+
+        if (str == '') {
+          clearResultFields();
+          return 'Digite um CEP';
+        } else if (str.length != 8) {
+          clearResultFields();
+          return ' CEP inválido!';
+        } else if (num.tryParse(str) == null) {
+          clearResultFields();
+          return 'CEP descrito incorretamente';
+        } else
+          return null;
+      },
+    );
+  }
+
+  Widget _buildSearchCepButton() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20.0),
+      child: RaisedButton(
+        onPressed: () {
+          if (_formKey.currentState.validate()) {
+            _searchCep();
+          }
+        },
+        child: _loading ? _circularLoading() : Text('Pesquisar'),
+        shape: RoundedRectangleBorder(),
+      ),
+    );
+  }
+
+  void _searching(bool enable) {
+    setState(() {
+      _result = enable ? '' : _result;
+      _loading = enable;
+      _enableField = !enable;
+    });
+  }
+
+  Widget _circularLoading() {
+    return Container(
+      height: 15.0,
+      width: 15.0,
+      child: CircularProgressIndicator(),
+    );
+  }
+
+  void clearResultFields() {
+    setState(() {
+      _searchCepController.text ='';
+      _resultBairro.text = "";
+      _resultComplemento.text = "";
+      _resultGIA.text = "";
+      _resultIBGE.text = "";
+      _resultLocalidade.text = "";
+      _resultRua.text = "";
+      _resultUF.text = "";
+      _resultUnidade.text = "";
+    });
+  }
+
+  Future _searchCep() async {
+    _searching(true);
+
+    final cep = _searchCepController.text;
+
+    final resultCep = await ViaCepService.fetchCep(cep: cep);
+
+    if (resultCep != null) {
+      setState(() {
+        _resultBairro.text = resultCep.bairro;
+        _resultComplemento.text = resultCep.complemento;
+        _resultGIA.text = resultCep.gia;
+        _resultIBGE.text = resultCep.ibge;
+        _resultLocalidade.text = resultCep.localidade;
+        _resultRua.text = resultCep.logradouro;
+        _resultUF.text = resultCep.uf;
+        _resultUnidade.text = resultCep.unidade;
+      });
+    } else {
+      Flushbar(
+        message: "CEP não pode ser encontrado!",
+        margin: EdgeInsets.all(8),
+        borderRadius: 8,
+        duration: Duration(seconds: 5),
+        icon: Icon(Icons.info_outline,
+            size: 30, color: Theme.of(context).errorColor),
+      )..show(context);
+      clearResultFields();
+    }
+    _searching(false);
+  }
+}
